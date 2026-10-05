@@ -5,6 +5,11 @@ import { CartItem } from "@/lib/types";
 
 type Stage = "form" | "creating-order" | "error" | "success";
 
+const DEFAULT_MERCHANT_NAME = "Cofee SDK Test Store";
+const DEFAULT_THEME_COLOR = "#05954e";
+// The SDK ignores anything other than #RGB / #RRGGBB.
+const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
 export function CheckoutModal({
   items,
   total,
@@ -19,6 +24,9 @@ export function CheckoutModal({
   const [stage, setStage] = useState<Stage>("form");
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
+  const [merchantName, setMerchantName] = useState(DEFAULT_MERCHANT_NAME);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [themeColor, setThemeColor] = useState(DEFAULT_THEME_COLOR);
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -70,9 +78,11 @@ export function CheckoutModal({
         key: checkoutKey,
         order_id: orderId,
         currency: "INR",
-        name: "Cofee SDK Test Store",
+        name: merchantName.trim() || DEFAULT_MERCHANT_NAME,
         description: `Order for ${items.length} item${items.length === 1 ? "" : "s"}`,
+        logo_url: logoUrl.trim() || undefined,
         ui_version: "v2",
+        theme: HEX_COLOR.test(themeColor) ? { color: themeColor } : undefined,
         handler: () => {
           setStage("success");
         },
@@ -97,7 +107,7 @@ export function CheckoutModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-sm rounded-xl bg-background border border-black/10 dark:border-white/15 p-6">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl bg-background border border-black/10 dark:border-white/15 p-6">
         {stage === "form" && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold">Checkout details</h2>
@@ -129,6 +139,65 @@ export function CheckoutModal({
                 className="rounded-md border border-black/15 dark:border-white/20 bg-transparent px-3 py-2 text-sm"
                 placeholder="+919876543210"
               />
+            </div>
+            <h3 className="text-sm font-semibold mt-2">Checkout appearance</h3>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium" htmlFor="merchant-name">
+                Merchant name
+              </label>
+              <input
+                id="merchant-name"
+                value={merchantName}
+                onChange={(e) => setMerchantName(e.target.value)}
+                className="rounded-md border border-black/15 dark:border-white/20 bg-transparent px-3 py-2 text-sm"
+                placeholder={DEFAULT_MERCHANT_NAME}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium" htmlFor="logo-url">
+                Logo URL
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="logo-url"
+                  type="url"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  className="flex-1 min-w-0 rounded-md border border-black/15 dark:border-white/20 bg-transparent px-3 py-2 text-sm"
+                  placeholder="https://example.com/logo.png"
+                />
+                {logoUrl.trim() && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logoUrl.trim()}
+                    alt="Logo preview"
+                    className="h-9 w-9 rounded border border-black/15 dark:border-white/20 object-contain"
+                  />
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium" htmlFor="theme-color">
+                Theme color
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={HEX_COLOR.test(themeColor) && themeColor.length === 7 ? themeColor : DEFAULT_THEME_COLOR}
+                  onChange={(e) => setThemeColor(e.target.value)}
+                  className="h-9 w-12 rounded border border-black/15 dark:border-white/20 bg-transparent"
+                  aria-label="Pick theme color"
+                />
+                <input
+                  id="theme-color"
+                  value={themeColor}
+                  onChange={(e) => setThemeColor(e.target.value)}
+                  pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})"
+                  title="Hex color, e.g. #05954e"
+                  className="flex-1 min-w-0 rounded-md border border-black/15 dark:border-white/20 bg-transparent px-3 py-2 text-sm font-mono"
+                  placeholder={DEFAULT_THEME_COLOR}
+                />
+              </div>
             </div>
             <div className="flex gap-2 mt-2">
               <button

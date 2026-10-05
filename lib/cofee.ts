@@ -53,11 +53,14 @@ async function cofeeFetch(path: string, init?: RequestInit) {
   const body = (await response.json()) as PaymentOrderApiResponse;
 
   if (!response.ok || body.status === "ERROR") {
-    const baseMessage = body.error?.message || `CoFee API request failed (${response.status})`;
+    const baseMessage =
+      body.error?.message || `CoFee API request failed (${response.status})`;
     const validationIssues = Array.isArray(body.data)
       ? body.data.map((issue) => `${issue.field}: ${issue.message}`).join(", ")
       : "";
-    throw new Error(validationIssues ? `${baseMessage} (${validationIssues})` : baseMessage);
+    throw new Error(
+      validationIssues ? `${baseMessage} (${validationIssues})` : baseMessage,
+    );
   }
 
   return body as PaymentOrderApiResponse & { data: PaymentOrderData };
@@ -75,7 +78,7 @@ function toE164Mobile(rawMobile: string): string {
 }
 
 export async function createPaymentOrder(
-  input: CreatePaymentOrderInput
+  input: CreatePaymentOrderInput,
 ): Promise<PaymentOrderData> {
   const branchId = getRequiredEnv("COFEE_BRANCH_ID");
   const accountReferenceId = getRequiredEnv("COFEE_ACCOUNT_REFERENCE_ID");
@@ -100,6 +103,7 @@ export async function createPaymentOrder(
           label: "Shopping Cart Order",
         },
       ],
+      redirect_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment-success`,
       send_receipt_to_customer: false,
       hide_review_page: true,
     }),
@@ -112,10 +116,15 @@ export async function createPaymentOrder(
   return body.data;
 }
 
-export async function getPaymentOrder(orderId: string): Promise<PaymentOrderData> {
-  const body = await cofeeFetch(`/v1/payment-order/${encodeURIComponent(orderId)}`, {
-    method: "GET",
-  });
+export async function getPaymentOrder(
+  orderId: string,
+): Promise<PaymentOrderData> {
+  const body = await cofeeFetch(
+    `/v1/payment-order/${encodeURIComponent(orderId)}`,
+    {
+      method: "GET",
+    },
+  );
 
   if (!body.data) {
     throw new Error("CoFee API did not return order data");
