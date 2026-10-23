@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CartItem } from "@/lib/types";
+import { getCheckoutEnvironment, loadCofeeCheckout } from "@/lib/cofeeCheckout";
 
 type Stage = "form" | "creating-order" | "error" | "success";
 
@@ -61,22 +62,12 @@ export function CheckoutModal({
         throw new Error("NEXT_PUBLIC_COFEE_CHECKOUT_KEY is not configured");
       }
 
-      // The published SDK's UMD build only flattens the double-nested export
-      // (`{ CofeeCheckout: { CofeeCheckout: class } }`) for the `window.CofeeCheckout`
-      // global, not for bundler/ESM imports — so unwrap it defensively here.
-      const sdkModule = await import("@cofee/checkout-web-sdk");
-      const CofeeCheckout =
-        typeof sdkModule.CofeeCheckout === "function"
-          ? sdkModule.CofeeCheckout
-          : (
-              sdkModule.CofeeCheckout as unknown as {
-                CofeeCheckout: typeof sdkModule.CofeeCheckout;
-              }
-            ).CofeeCheckout;
+      const CofeeCheckout = await loadCofeeCheckout();
 
       const checkout = new CofeeCheckout({
         key: checkoutKey,
         order_id: orderId,
+        environment: getCheckoutEnvironment(),
         currency: "INR",
         name: merchantName.trim() || DEFAULT_MERCHANT_NAME,
         description: `Order for ${items.length} item${items.length === 1 ? "" : "s"}`,

@@ -1,15 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PRODUCTS } from "@/lib/products";
 import { CartItem, Product } from "@/lib/types";
 import { ProductList } from "@/components/ProductList";
 import { CartPanel } from "@/components/CartPanel";
 import { CheckoutModal } from "@/components/CheckoutModal";
+import { loadCofeeCheckout } from "@/lib/cofeeCheckout";
 
 export default function Home() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
+  const [resumedPaymentStatus, setResumedPaymentStatus] = useState<string | null>(null);
+
+  // On Android the browser may discard this tab while the customer is in a UPI app.
+  // The SDK reopens checkout on reload; attach handlers so the result still reaches us.
+  useEffect(() => {
+    let cancelled = false;
+    loadCofeeCheckout().then((CofeeCheckout) => {
+      if (cancelled) return;
+      CofeeCheckout.resumePending({
+        handler: (response) => setResumedPaymentStatus(`Payment successful for order ${response.order_id}.`),
+      })?.on("payment.failed", (response) =>
+        setResumedPaymentStatus(response.error.description || "Payment failed")
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function addToCart(product: Product) {
     setCart((prev) => ({ ...prev, [product.id]: (prev[product.id] ?? 0) + 1 }));
@@ -64,6 +83,15 @@ export default function Home() {
           Add products, check out, and the Cofee checkout overlay SDK will take over payment.
         </p>
       </header>
+
+      {resumedPaymentStatus && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-md border border-black/15 dark:border-white/20 px-4 py-3 text-sm">
+          <span>{resumedPaymentStatus}</span>
+          <button onClick={() => setResumedPaymentStatus(null)} className="font-medium">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
         <ProductList products={PRODUCTS} onAdd={addToCart} />
